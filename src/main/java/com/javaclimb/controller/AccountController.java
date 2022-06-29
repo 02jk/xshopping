@@ -1,0 +1,61 @@
+package com.javaclimb.controller;
+
+import cn.hutool.core.util.StrUtil;
+import com.javaclimb.common.Common;
+import com.javaclimb.common.Result;
+import com.javaclimb.common.ResultCode;
+import com.javaclimb.entity.UserInfo;
+import com.javaclimb.exception.CustomException;
+import com.javaclimb.service.UserInfoService;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
+/*
+* 登录、退出相关的控制器
+* */
+@RestController/*返回的是json结构的数据，返回的一个个类、对象*/
+public class AccountController {
+
+    @Resource
+    private UserInfoService userInfoService;
+
+    /*
+    * 登录
+    * */
+    @PostMapping("/login")/*前端提交给后台登录用post方式*//*此处的userinfo是entity里边对应的*//*成功之后用request方法放到session里边去*/
+    public Result<UserInfo> login(@RequestBody UserInfo userInfo, HttpServletRequest request){
+        if(StrUtil.isBlank(userInfo.getName())||StrUtil.isBlank(userInfo.getPassword())){
+            throw new CustomException(ResultCode.USER_ACCOUNT_ERROR);
+        }
+        // 从数据库查询账号密码是否正确,放到session
+
+        UserInfo login = userInfoService.login(userInfo.getName(), userInfo.getPassword());
+        HttpSession session = request.getSession();
+        session.setAttribute(Common.USER_INFO,login);
+        session.setMaxInactiveInterval(60*24);//设置过期时间为一天
+        return Result.success(login);
+    }
+
+    /*
+    * 重置密码为123456
+    * */
+    @PostMapping("/resetPassword")/*前端提交给后台登录用post方式*//*此处的userinfo是entity里边对应的*//*成功之后用request方法放到session里边去*/
+    public Result<UserInfo> resetPassword(@RequestBody UserInfo userInfo){
+        return Result.success(userInfoService.resetPassword(userInfo.getName()));
+    }
+
+    /*退出登录*/
+    @GetMapping("/logout")
+    public Result logout(HttpServletRequest request)
+    {
+        request.getSession().setAttribute(Common.USER_INFO,null);
+        return Result.success();
+    }
+
+}
